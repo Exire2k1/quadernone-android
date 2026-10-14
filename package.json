@@ -1,0 +1,12 @@
+{
+  "name": "quadernone-android",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Quadernone: app Android di note scritte a mano, standalone",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs 8090",
+    "test:diff": "sh tools/difftest.sh",
+    "test:ui": "node tools/serve.mjs 8090 & SERVER=$!; sleep 1; node tools/ui-smoke.mjs http://127.0.0.1:8090 /tmp/qn-shots; RC=$?; kill $SERVER; exit $RC"
+  }
+}

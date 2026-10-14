@@ -1,0 +1,11 @@
+node_modules/
+/tmp/
+*.log
+.DS_Store
+# Android build output (stage 2)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.keystore
+*.jks
