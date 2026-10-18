@@ -6,5 +6,5 @@
 // Left empty, the app works fully offline on each device and Drive can be set up later
 // in Impostazioni → Google Drive.
 export const CONFIG = {
-  googleClientId: '',
+  googleClientId: '888755265747-ihluivcglqkhodim0sfp7kt5tgbits6s.apps.googleusercontent.com',
 };
