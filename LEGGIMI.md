@@ -9,14 +9,13 @@ Versione dell'app senza server di casa. Le note sono salvate sul dispositivo, ne
 
 ---
 
-## 1. Pubblicazione su GitHub Pages (una volta sola, circa 5 minuti)
+## 1. Pubblicazione su GitHub Pages (una volta sola)
 
-Una PWA deve stare su un indirizzo `https://` per potersi installare e per l'accesso a Google. GitHub Pages è gratuito.
+L'app sta nel branch **`pwa`** del repository `Exire2k1/quadernone-android`. Il branch `main` con il progetto APK non è stato toccato.
 
-1. Su github.com crea un repository **pubblico**, per esempio `quadernone`. Il codice dell'app è pubblico, le note no: restano sui dispositivi e nel Drive di ciascuno.
-2. Nel repository: **Add file › Upload files**. Trascina **tutto il contenuto** di questa cartella: `index.html` deve stare nella radice del repository, non dentro una sottocartella. Poi **Commit changes**.
-3. **Settings › Pages › Build and deployment**: Source = *Deploy from a branch*, Branch = `main`, cartella `/ (root)`, **Save**.
-4. Dopo circa un minuto l'app è su `https://<tuo-utente>.github.io/quadernone/`, quindi per te `https://exire2k1.github.io/quadernone/`.
+1. GitHub Pages gratuito funziona solo con repository **pubblici**: **Settings › General › Danger Zone › Change visibility › Make public**. Il codice è pubblico, le note no: restano sui dispositivi e nel Drive di ciascuno. In alternativa serve GitHub Pro.
+2. **Settings › Pages › Build and deployment**: Source = *Deploy from a branch*, Branch = **`pwa`**, cartella **`/ (root)`** › **Save**.
+3. Dopo 1–2 minuti l'app è su **`https://exire2k1.github.io/quadernone-android/`**. Lo stesso indirizzo compare in alto in Settings › Pages.
 
 ## 2. ID client di Google per Drive (una volta sola, circa 5–10 minuti)
 
@@ -34,7 +33,7 @@ Serve solo se vuoi la sincronizzazione con Drive. L'ID client **non è un segret
    - **Origini JavaScript autorizzate** › Aggiungi URI: `https://exire2k1.github.io`, senza `/quadernone` e senza `/` finale;
    - **URI di reindirizzamento**: lascia vuoto;
    - Crea, poi copia l'**ID client**, che finisce con `.apps.googleusercontent.com`.
-7. Inserisci l'ID nell'app. Il modo migliore è su GitHub: apri `config.js` › matita (Modifica) › incollalo tra gli apici di `googleClientId: ''` › Commit. In questo modo vale per tutti i dispositivi e per gli amici. In alternativa puoi incollarlo in Impostazioni › Google Drive su ogni dispositivo.
+7. Inserisci l'ID nell'app. Il modo migliore è su GitHub: nel branch `pwa` apri `config.js` › matita (Modifica) › incollalo tra gli apici di `googleClientId: ''` › Commit. In questo modo vale per tutti i dispositivi e per gli amici. In alternativa puoi incollarlo in Impostazioni › Google Drive su ogni dispositivo.
 
 ## 3. Installazione sui dispositivi
 
