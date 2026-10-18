@@ -1,79 +1,160 @@
-# Quadernone Locale
+<div align="center">
 
-Versione dell'app senza server di casa. Le note sono salvate sul dispositivo, nell'archivio del browser, e funzionano anche senza internet. Google Drive è facoltativo e serve a sincronizzare più dispositivi. Non servono VPN né token.
+<img src="icons/icon.svg" width="96" alt="">
 
-- Le note hanno lo stesso formato di file della versione server: `meta.json`, `pages.json`, `note.md`, `ink/<pagina>.json`, `previews/*.svg`, `cover.png`, `attachments/…`.
-- **Con Drive collegato**, nel tuo Drive compare la cartella `Quadernone`, con dentro le tue cartelle e una cartella per ogni nota, in file leggibili anche senza l'app. L'app usa il permesso `drive.file`: vede solo i file che ha creato lei, non il resto del Drive.
-- **Conflitti:** se una nota viene modificata su due dispositivi prima della sincronizzazione, non si perde niente. La versione di un dispositivo diventa una "copia di conflitto", che risolvi dalla Libreria (Tieni l'originale / la copia / Unisci / Tienile entrambe).
-- **Backup senza Drive:** Impostazioni › Dati su questo dispositivo › Esporta tutto (.zip).
+# Quadernone
+
+**Il quaderno a penna che sta sul tuo dispositivo.**
+Scrivi a mano, annota PDF e slide, organizza tutto in cartelle.
+Funziona senza internet; con Google Drive, se vuoi, ritrovi tutto su ogni dispositivo.
+
+[Apri l'app](https://exire2k1.github.io/quadernone-android/) · [Guida all'installazione](LEGGIMI.md)
+
+</div>
+
+<p align="center">
+  <img src="docs/screenshots/libreria.png" width="49%" alt="La Libreria: cartelle a sinistra, copertine delle note al centro">
+  <img src="docs/screenshots/editor.png" width="49%" alt="L'editor: pagina a righe con scrittura a mano, evidenziatore e titolo">
+</p>
 
 ---
 
-## 1. Pubblicazione su GitHub Pages (una volta sola)
+## Com'è fatto
 
-L'app sta nel branch **`pwa`** del repository `Exire2k1/quadernone-android`. Il branch `main` con il progetto APK non è stato toccato.
+Quadernone ha **due schermate**:
 
-1. GitHub Pages gratuito funziona solo con repository **pubblici**: **Settings › General › Danger Zone › Change visibility › Make public**. Il codice è pubblico, le note no: restano sui dispositivi e nel Drive di ciascuno. In alternativa serve GitHub Pro.
-2. **Settings › Pages › Build and deployment**: Source = *Deploy from a branch*, Branch = **`pwa`**, cartella **`/ (root)`** › **Save**.
-3. Dopo 1–2 minuti l'app è su **`https://exire2k1.github.io/quadernone-android/`**. Lo stesso indirizzo compare in alto in Settings › Pages.
+- **la Libreria**, per trovare e organizzare le note;
+- **l'Editor**, per scriverci dentro.
 
-## 2. ID client di Google per Drive (una volta sola, circa 5–10 minuti)
+Tutto il resto (impostazioni, cestino, copertina, importazione) si apre sopra come pannello e si chiude tornando esattamente dov'eri.
 
-Serve solo se vuoi la sincronizzazione con Drive. L'ID client **non è un segreto**: identifica l'app presso Google e non dà accesso a niente.
+È pensato prima di tutto per la **penna**: la S Pen del tablet Samsung, la penna di un portatile touch Windows o il dito sul telefono. L'interfaccia è solo scura, la carta resta carta.
 
-1. Apri <https://console.cloud.google.com/> › in alto, selettore progetti › **Nuovo progetto**, nome `Quadernone` › Crea.
-2. **API e servizi › Libreria** › cerca **Google Drive API** › **Abilita**.
-3. **Google Auth Platform** (oppure "Schermata consenso OAuth") › **Inizia**:
-   - Nome app: `Quadernone`; email di assistenza: la tua;
-   - Pubblico: **Esterno**;
-   - Dati di contatto: la tua email › Crea.
-4. **Accesso ai dati › Aggiungi o rimuovi ambiti** › cerca `drive.file` (`.../auth/drive.file`) › Aggiorna › Salva.
-5. **Pubblico › Pubblica app** (stato "In produzione"). `drive.file` è un ambito non sensibile, quindi non serve la verifica di Google e anche i tuoi amici possono accedere. Se invece la lasci "In test", aggiungi a mano gli account in **Utenti di test**, al massimo 100.
-6. **Client › Crea client** › Tipo: **Applicazione web** › Nome: `Quadernone web`:
-   - **Origini JavaScript autorizzate** › Aggiungi URI: `https://exire2k1.github.io`, senza `/quadernone` e senza `/` finale;
-   - **URI di reindirizzamento**: lascia vuoto;
-   - Crea, poi copia l'**ID client**, che finisce con `.apps.googleusercontent.com`.
-7. Inserisci l'ID nell'app. Il modo migliore è su GitHub: nel branch `pwa` apri `config.js` › matita (Modifica) › incollalo tra gli apici di `googleClientId: ''` › Commit. In questo modo vale per tutti i dispositivi e per gli amici. In alternativa puoi incollarlo in Impostazioni › Google Drive su ogni dispositivo.
+## Scrivere
 
-## 3. Installazione sui dispositivi
+- **Quattro penne:**
+  - **biro**, tratto uniforme;
+  - **stilografica**, lo spessore segue la pressione e la direzione, come un pennino a 45°;
+  - **matita**, granulosa e semitrasparente;
+  - **pennarello**, largo e coprente.
+- **Spessore** da 0,5 a 20 pt, con tre spessori preferiti.
+- **Pressione:** si calibra da sola su ogni dispositivo, perché ogni penna la misura a modo suo.
+- **Evidenziatore:**
+  - sei colori fluo;
+  - punta tonda o a scalpello;
+  - modalità *linea dritta* per sottolineare;
+  - resta sempre **sotto** l'inchiostro, così non copre ciò che hai scritto.
+- **Gomma:** ad area (cancella solo dove passi) oppure a tratto intero; c'è anche *Cancella pagina*.
+- **Lazo:**
+  - selezione libera o a rettangolo, con filtro (tutto, solo scrittura, solo immagini, solo testo);
+  - sulla selezione puoi spostare, ridimensionare, ruotare, cambiare colore e spessore, copiare, duplicare, portare avanti o indietro, spostare su un'altra pagina.
+- **Forme:**
+  - disegna un cerchio, un rettangolo, un triangolo o una linea e tieni ferma la punta mezzo secondo: diventa una forma perfetta, che resta modificabile;
+  - oppure le inserisci direttamente (linea, freccia, rettangolo, ellisse, triangolo).
+- **Righello virtuale:** lo sposti e lo ruoti con due dita, la penna traccia dritta lungo il bordo e vedi l'angolo.
+- **Testo:**
+  - caselle ovunque sulla pagina;
+  - titoli, grassetto, corsivo, sottolineato, barrato;
+  - elenchi puntati e numerati, liste di controllo;
+  - colore, dimensione, allineamento.
+- **Colori:** dieci colori rapidi personalizzabili, selettore completo con codice esadecimale, contagocce e gli ultimi cinque usati.
 
-- **Tablet Samsung e telefono:** apri l'indirizzo in **Chrome** › menu ⋮ › **Installa app** (o "Aggiungi a schermata Home" › Installa).
-- **Lenovo / PC:** in Chrome o Edge, icona "Installa" nella barra degli indirizzi.
-- Al primo avvio scegli il nome del dispositivo (Tablet, Telefono…). Poi, se vuoi, Impostazioni › Google Drive › **Accedi con Google**.
-- Il token di Google dura un'ora. Quando scade, l'indicatore in basso nella Libreria mostra "Tocca per ricollegare Google Drive": un tocco e si riapre la finestra di Google, già compilata. Le note intanto si salvano comunque sul dispositivo.
+### La penna fa la penna, il dito fa il dito
 
-> **Importante senza Drive:** il browser può cancellare i dati dei siti se il dispositivo resta senza spazio. Un'app installata è protetta. In ogni caso, collega Drive oppure fai ogni tanto **Esporta tutto (.zip)**.
+- **Penna:** scrive con lo strumento scelto.
+- **Dito:**
+  - un dito scorre la pagina;
+  - due dita spostano e fanno zoom;
+  - con *Dito e penna* anche il dito scrive.
+- **Palmo:** appoggiato sullo schermo mentre scrivi, viene ignorato.
+- **Tasto laterale della penna:**
+  - una pressione breve passa da **Penna** a **Gomma** e viceversa;
+  - tenendolo premuto attivi il **Lazo** finché lo tieni;
+  - la punta-gomma, se la penna ce l'ha, cancella sempre.
+- **Gesti:** doppio tocco con due dita = annulla, con tre dita = ripeti.
+- **Tastiera:** `Ctrl+Z` / `Ctrl+Y`, copia e incolla; `P` `H` `E` `L` `T` per penna, evidenziatore, gomma, lazo e testo; `Ctrl +` / `Ctrl −` per lo zoom.
+- Almeno **100 passi di annulla** per sessione, su scrittura, oggetti, pagine e sfondi.
 
-## 4. Portare le note dal server di casa
+## Pagine
 
-1. Sul server comprimi la cartella `D:\Quaderno\data` (tasto destro › Comprimi). Lascia fuori `Samsungnotes`, che contiene gli originali `.sdocx` da circa 450 MB: un archivio troppo grande può bloccare il browser del tablet.
-2. Nell'app: **Importa › Scegli file…** › il file `.zip` › Importa (oppure Impostazioni › Importa archivio Quadernone). Cartelle, inchiostro, PDF, copertine e cestino vengono ricreati. Le note già presenti, riconosciute dallo stesso id, non vengono toccate.
-3. Con Drive collegato, le note importate vanno su Drive e da lì arrivano agli altri dispositivi.
+- **Formati:** A4 (predefinito), A5, Letter, verticale o orizzontale, misura personalizzata in millimetri, oppure **pagina infinita** che si allunga mentre scrivi.
+- **Sfondi:** bianco, a righe, a quadretti o a puntini, con spaziatura e colore delle righe a scelta.
+- **Colori della carta:** bianca, avorio, sabbia, grigia o scura (con righe chiare).
+- Sfondo e formato si cambiano **per pagina o per tutta la nota**, anche dopo: la scrittura non si sposta.
+- **Pannello Pagine:** miniature per saltare, trascinare e riordinare, duplicare, eliminare.
+- **Nessun pulsante Salva:** ogni modifica si salva da sola dopo un istante.
 
-## 5. Aggiornare l'app
+## PDF, slide e immagini
 
-Si caricano su GitHub i file cambiati, alzando `VERSION` in `sw.js` e `APP_VERSION` in `js/version.js` (lo stesso numero). I dispositivi si aggiornano da soli al ritorno nella Libreria.
+- **PDF:** ogni pagina del PDF diventa una pagina della nota, su cui puoi scrivere. L'originale resta intatto tra gli allegati e puoi inserire pagine bianche tra quelle del PDF.
+- **Slide `.pptx`:** diventano pagine annotabili, convertite tramite Google Drive.
+- **Immagini:** da file, galleria, fotocamera o appunti. Puoi ritagliarle, ruotarle, cambiarne l'opacità, bloccarle o usarle come copertina.
+- **Esporta PDF:** la nota esce come PDF con scrittura, testo e immagini sopra le pagine originali, uguale a come la vedi. Con più note esce un `.zip`.
 
-## Differenze dalla versione server
+## Libreria
 
-| | Server di casa | Quadernone Locale |
-|---|---|---|
-| Dove stanno le note | `D:\Quaderno\data` | sul dispositivo (IndexedDB) + Google Drive facoltativo |
-| Accesso da fuori casa | Tailscale | nessun requisito |
-| Token | sì | no (accesso con Google) |
-| Slide `.pptx` | LibreOffice sul server | conversione tramite Google Drive (serve Drive collegato; PDF risultante max 10 MB), oppure inserisci il PDF |
-| Suggerimenti AI (pc-anto) | sì | no (le AI leggono `S:\Quaderno`) |
-| Copia di sicurezza prima di "Unisci"/"Tieni la copia" | `backup\conflitti` | nel Cestino ("… (prima della risoluzione)") |
+- **Cartelle e sottocartelle senza limiti**, con un colore a scelta. Per spostare una nota o una cartella basta trascinarla su un'altra.
+- **Viste rapide:** Preferiti, Recenti (ultimi 30 giorni), Tutte le note.
+- **Visualizzazione:** griglia di copertine o elenco con la prima riga di testo. Ordinamento per modifica, creazione o nome.
+- **Copertine:** automatiche (la prima pagina), da un'immagine o con colore e icona.
+- **Selezione multipla** per spostare, eliminare, aggiungere ai preferiti o esportare più note insieme.
+- **Ricerca** in titoli, caselle di testo e **testo dei PDF**:
+  - ignora maiuscole e accenti ("perche" trova "perché");
+  - mostra il brano trovato evidenziato e apre la nota alla pagina giusta;
+  - filtri: solo questa cartella, solo PDF, intervallo di date.
+- **Cestino:** le note eliminate restano 30 giorni (durata regolabile) e si ripristinano nella cartella di origine, anche se nel frattempo era stata cancellata.
 
-## Struttura del codice
+## Dove stanno le tue note
 
-Il client è quello della versione server (editor, inchiostro, Libreria, import/export), con questi moduli nuovi o cambiati:
+**Sul dispositivo, prima di tutto.** Quadernone non ha un server e non ti chiede un account. Le note si salvano nell'archivio interno del browser, così l'app si apre e funziona anche in aereo o in metropolitana.
 
-- `js/local/server.js`: le stesse API `/api` del PHP (revisioni, copie di conflitto, cestino, feed, ricerca, conflitti), eseguite nell'app;
-- `js/local/disk.js`: l'"hard disk" in IndexedDB (`quadernone-disk`);
-- `js/local/intercept.js`: risponde alle `fetch` verso `https://quadernone.local/api/…`;
-- `js/local/drive.js`: accesso Google (Google Identity Services) e chiamate REST a Drive;
-- `js/local/drivesync.js`: sincronizzazione bidirezionale, con versione `v` per nota e copie di conflitto;
-- `js/local/backup.js`: esporta e importa l'archivio `.zip`;
-- `config.js`: l'ID client di Google.
-- 
+**Su Google Drive, se vuoi.** Con *Accedi con Google* nel tuo Drive compare la cartella **`Quadernone`**, con le tue cartelle e una cartella per ogni nota. Da lì le note arrivano agli altri dispositivi in pochi secondi.
+
+```
+Quadernone/
+  Università/
+    Wireless/
+      Lezione MIMO/
+        meta.json        titolo, date, preferito, copertina
+        pages.json       pagine, sfondi, caselle di testo, immagini, forme
+        note.md          tutto il testo della nota, in Markdown
+        ink/…json        la scrittura a mano, pagina per pagina
+        previews/…svg    ogni pagina come immagine
+        cover.png        la copertina
+        attachments/     PDF, slide e immagini originali
+  _cestino/
+```
+
+- **File in chiaro e formati aperti:** le note si leggono anche senza l'app e non sono chiuse in un formato proprietario.
+- **Accesso limitato:** l'app vede **solo i file che crea lei**, non il resto del tuo Drive.
+- **Account separati:** ognuno usa il proprio account Google; le note di un amico non passano mai dalle tue.
+- **Mai una sovrascrittura silenziosa:** se modifichi la stessa nota su due dispositivi prima che si sincronizzino, una versione diventa una **copia di conflitto**. Quadernone ti mostra cosa c'è solo nell'una e solo nell'altra e ti consiglia cosa fare: tieni l'originale, tieni la copia, **uniscile** oppure tienile entrambe.
+- **Copia di sicurezza senza Drive:** *Esporta tutto (.zip)* crea un archivio con lo stesso formato di file. Si reimporta con un tocco, anche su un altro dispositivo.
+
+## Portare le note da Samsung Notes
+
+- **File `.sdocx`:** la scrittura a mano resta **scrittura vera**, tratto per tratto e modificabile, con PDF, immagini, testo e date originali.
+- **Export in PDF o `.txt`** da Samsung Notes: i PDF diventano pagine su cui continuare a scrivere, i `.txt` caselle di testo.
+- **Una cartella intera o uno `.zip`:** con *Ricrea le cartelle di origine* ritrovi la stessa organizzazione.
+
+## Su quali dispositivi
+
+Quadernone è una **Progressive Web App**: si apre dal browser e si **installa** come un'app vera, con la sua icona, a schermo intero e funzionante offline.
+
+| Dispositivo | Come si usa |
+|---|---|
+| Tablet Android con penna (es. Samsung + S Pen) | Chrome › ⋮ › *Installa app*. Il dispositivo principale per scrivere. |
+| Portatile Windows touch con penna | Chrome o Edge › icona *Installa* nella barra degli indirizzi. |
+| Telefono | Chrome › *Installa app*. Pagine adattate alla larghezza, strumenti essenziali in vista. |
+| PC con mouse e tastiera | Dal browser, per rileggere, organizzare ed esportare. |
+
+L'installazione passo per passo e la configurazione di Google Drive sono in **[LEGGIMI.md](LEGGIMI.md)**.
+
+## Sotto il cofano
+
+- HTML, CSS e JavaScript (moduli ES) senza framework e **senza build**: i file che vedi sono quelli che girano.
+- **Archivio sul dispositivo:** IndexedDB, con revisioni per nota e per pagina, cestino e registro delle modifiche, come un piccolo server che vive dentro l'app.
+- **Google Drive:** Google Identity Services e l'API REST di Drive, con permesso `drive.file`.
+- **Librerie incluse nel repository**, nessuna caricata da internet: [pdf.js](https://github.com/mozilla/pdf.js) per mostrare i PDF, [pdf-lib](https://github.com/Hopding/pdf-lib) per esportarli, [perfect-freehand](https://github.com/steveruizok/perfect-freehand) per i tratti, [JSZip](https://github.com/Stuk/jszip) per gli archivi. Versioni e licenze in [`vendor/VERSIONS.md`](vendor/VERSIONS.md).
+
+<p align="center"><sub>Fatto per scrivere a mano, non per riempire moduli.</sub></p>
