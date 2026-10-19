@@ -161,6 +161,7 @@ async function boot() {
   document.addEventListener('visibilitychange', refresh);
   window.addEventListener('focus', refresh);
   window.addEventListener('online', refresh);
+  window.__qnBooted = true;   // see js/bootguard.js
 }
 
 boot();

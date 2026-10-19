@@ -51,7 +51,11 @@ export function openPanel({ title = '', body = null, footer = null, variant = 's
   document.getElementById('overlays').append(layer);
   stack.push(entry);
   history.pushState({ ...(history.state || {}), qnPanel: stack.length }, '');
-  requestAnimationFrame(() => layer.classList.add('open'));
+  // Fade in on the next frame. The timer is a fallback: an app launched from the home screen
+  // can start before it draws its first frame, and a panel must never stay invisible.
+  const show = () => layer.classList.add('open');
+  requestAnimationFrame(show);
+  setTimeout(show, 250);
   // Focus the first field, or the panel itself.
   setTimeout(() => (panel.querySelector('[autofocus], input, select, textarea') || panel).focus?.({ preventScroll: true }), 60);
   panel.tabIndex = -1;

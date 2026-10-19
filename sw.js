@@ -5,7 +5,7 @@
 // - Nothing else is touched: notes never go through here (they are in IndexedDB), and Google
 //   (sign-in, Drive) always goes straight to the network.
 // Paths are relative to the worker's scope, so the app can live in any folder of any host.
-const VERSION = '1.0.1'; // keep in sync with js/version.js
+const VERSION = '1.0.2'; // keep in sync with js/version.js
 const SHELL = `qnl-shell-${VERSION}`;
 const RUNTIME = 'qnl-runtime-v1';
 
@@ -17,6 +17,7 @@ const SHELL_FILES = [
   'css/app.css',
   'i18n/it.js',
   'js/api.js',
+  'js/bootguard.js',
   'js/diag.js',
   'js/dom.js',
   'js/i18n.js',
