@@ -116,8 +116,9 @@ export class InkInput extends EventTarget {
       if (tools.s.sideButton && (e.buttons & 2)) return 'side';
       return tools.isDrawing() ? tools.active : null;           // text tool: handled by the text layer
     }
+    // A mouse has no palm to reject, so its left button always draws, whatever "Solo penna" says.
+    if (e.pointerType === 'mouse') return e.button === 0 && tools.isDrawing() ? tools.active : null;
     const fingerDraws = tools.s.fingerMode === 'both' && tools.isDrawing();
-    if (e.pointerType === 'mouse') return e.button === 0 && fingerDraws ? tools.active : null;
     return fingerDraws ? tools.active : null;
   }
 
