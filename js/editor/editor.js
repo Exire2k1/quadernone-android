@@ -19,7 +19,7 @@ import { ObjectLayer } from './objects.js';
 import { createTextBar } from './textbar.js';
 import { openPagesPanel } from './pagespanel.js';
 import { openFormatPanel } from './formatpanel.js';
-import { PageView } from '../page/pageview.js';
+import { PageView } from '../page/foglio.js';
 import { pageToSvg } from '../page/svg.js';
 import { renderCoverPng } from '../page/thumb.js';
 import * as prefs from '../prefs.js';

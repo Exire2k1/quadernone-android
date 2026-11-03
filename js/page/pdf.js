@@ -63,7 +63,7 @@ async function renderRegion(doc, index, pxPerMm, y0Mm, hMm, widthMm) {
 }
 
 /**
- * Paints PDF backgrounds into the page tiles of one note (see page/pageview.js).
+ * Paints PDF backgrounds into the page tiles of one note (see page/foglio.js).
  * One render at a time, the newest request first; requests for tiles that are gone or
  * were drawn at another zoom meanwhile are skipped.
  */

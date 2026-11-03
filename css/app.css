@@ -434,7 +434,7 @@ select.field-input { padding-right: 8px; }
 .editor-stage { position: relative; flex: 1; min-height: 0; }
 .editor-scroll {
   position: absolute; inset: 0; overflow: auto; background: #1A1C20; outline: none;
-  /* Touch panning, kinetic scrolling and pinch are handled in pageview.js. */
+  /* Touch panning, kinetic scrolling and pinch are handled in foglio.js. */
   touch-action: none; overscroll-behavior: contain;
 }
 .page-stack { position: relative; margin: 0 auto; }

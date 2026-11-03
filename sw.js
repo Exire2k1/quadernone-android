@@ -8,7 +8,7 @@
 // - Nothing else is touched: notes never go through here (they are in IndexedDB), and Google
 //   (sign-in, Drive) always goes straight to the network.
 // Paths are relative to the worker's scope, so the app can live in any folder of any host.
-const VERSION = '1.0.6'; // keep in sync with js/version.js
+const VERSION = '1.0.7'; // keep in sync with js/version.js
 const SHELL = `qnl-shell-${VERSION}`;
 const RUNTIME = 'qnl-runtime-v1';
 const SHARE = 'qnl-shared-files'; // same name in js/import/opened.js
@@ -32,7 +32,7 @@ const SHELL_FILES = [
   'js/version.js',
   'js/page/images.js',
   'js/page/ink.js',
-  'js/page/pageview.js',
+  'js/page/foglio.js',
   'js/page/paper.js',
   'js/page/pdf.js',
   'js/page/shapes.js',
