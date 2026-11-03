@@ -18,6 +18,10 @@ import { INFINITE_MARGIN_MM } from './objects.js';
 
 const PALM_AFTER_PEN_MS = 700;
 const PALM_CONTACT_PX = 46;
+// Windows rejects palms itself (Windows Ink), and its touch screens report fingertips much
+// larger than Samsung tablets do (a finger on a Lenovo at 150 % can exceed PALM_CONTACT_PX):
+// there only the pen rule applies (a touch while the pen writes or hovers is a palm).
+const PALM_BY_SIZE = !/Windows/i.test(navigator.userAgent);
 const MIN_POINT_MM = 0.12;
 const SHAPE_HOLD_MS = 500;
 const HOVER_PRESS_MIN_MS = 80;   // see #actionFor
@@ -95,7 +99,7 @@ export class InkInput extends EventTarget {
   #isPalm(e) {
     if (e.pointerType !== 'touch') return false;
     if (this.#penDown || performance.now() < this.#penActiveUntil) return true;
-    return (e.width || 0) > PALM_CONTACT_PX && (e.height || 0) > PALM_CONTACT_PX;
+    return PALM_BY_SIZE && (e.width || 0) > PALM_CONTACT_PX && (e.height || 0) > PALM_CONTACT_PX;
   }
 
   /** What a pointerdown should do: null (not ours) or an action name. */
