@@ -197,6 +197,7 @@ async function boot() {
   window.addEventListener('focus', refresh);
   window.addEventListener('online', refresh);
   window.__qnBooted = true;   // see js/bootguard.js
+  try { sessionStorage.removeItem('qnAutoRepair'); } catch { /* storage off */ }
 }
 
 boot();

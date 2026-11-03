@@ -15,6 +15,18 @@
 
   function started() { return window.__qnBooted || document.querySelector('#screens > *, #overlays > *'); }
 
+  // Downloads every app file again, past the browser's HTTP cache too: without a service
+  // worker, the browser can keep old copies of some modules for a few minutes after an
+  // update, and a new main.js with an old module next to it does not start. The list of
+  // files is the one in sw.js.
+  async function refreshFiles() {
+    var base = document.baseURI;
+    var sw = await (await fetch(new URL('sw.js', base), { cache: 'reload' })).text();
+    var list = (sw.match(/SHELL_FILES = \[([\s\S]*?)\]/) || [])[1] || '';
+    var files = (list.match(/'[^']+'/g) || []).map(function (q) { return q.slice(1, -1); });
+    await Promise.all(files.map(function (f) { return fetch(new URL(f, base), { cache: 'reload' }).catch(function () {}); }));
+  }
+
   async function repair() {
     try {
       var regs = await navigator.serviceWorker.getRegistrations();
@@ -22,11 +34,25 @@
       var keys = await caches.keys();
       for (var j = 0; j < keys.length; j++) if (keys[j].indexOf('qnl-') === 0) await caches.delete(keys[j]);
     } catch (e) { /* nothing more to do */ }
+    try { await refreshFiles(); } catch (e) { /* offline: the reload shows the error again */ }
     location.reload();
+  }
+
+  // A module that did not load right after an update: refresh the files and retry once by
+  // itself (once per tab session, so a real problem still shows the screen below).
+  function autoRepair() {
+    try {
+      if (sessionStorage.getItem('qnAutoRepair')) return false;
+      sessionStorage.setItem('qnAutoRepair', '1');
+    } catch (e) { return false; }
+    refreshFiles().catch(function () {}).then(function () { location.reload(); });
+    return true;
   }
 
   function show() {
     if (started() || document.getElementById('qn-boot-error')) return;
+    // Any start-up error may be an old file next to new ones: one refresh first.
+    if (errors.length && navigator.onLine !== false && autoRepair()) return;
     var box = document.createElement('div');
     box.id = 'qn-boot-error';
     box.setAttribute('style', 'position:fixed;inset:0;z-index:9999;overflow:auto;background:#0F1012;color:#E8E6E1;' +
