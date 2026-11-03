@@ -4,6 +4,7 @@ import { t } from '../i18n.js';
 import * as prefs from '../prefs.js';
 import { openPanel } from '../ui/panel.js';
 import { icon } from '../icons.js';
+import { folderMirror, supported as folderSupported } from '../local/folder.js';
 
 const QUICK = ['tablet', 'lenovo', 'phone', 'pc'];
 
@@ -16,6 +17,22 @@ export function deviceNameField(initial, onChange) {
   const paint = () => chips.forEach((c, i) => c.classList.toggle('active', t('devices.' + QUICK[i]) === value));
   paint();
   return h('div.field', {}, h('span.field-label', {}, t('firstRun.deviceName')), h('div.segmented.wrap', {}, chips), custom);
+}
+
+/** Optional: the folder where notes are also kept as files (an existing one brings them back). */
+function folderField() {
+  const state = h('p.hint', {}, t('folder.firstRunHint'));
+  const btn = h('button.btn', { type: 'button', onclick: async () => {
+    try {
+      // Device name first: restored notes and the folder record which device wrote them.
+      const res = await folderMirror.choose();
+      if (!res) return;
+      state.textContent = t('folder.firstRunChosen', { name: folderMirror.name }) + (res.restored ? ' · ' + t('folder.restored', { n: res.restored }) : '');
+      state.className = 'form-msg ok';
+      btn.textContent = t('folder.change');
+    } catch (e) { state.textContent = e.message || String(e); state.className = 'form-msg'; }
+  } }, icon('folder'), h('span', {}, t('folder.choose')));
+  return h('div.field', {}, h('span.field-label', {}, t('folder.firstRun')), h('div.btn-row', {}, btn), state);
 }
 
 export function showFirstRun() {
@@ -39,6 +56,7 @@ export function showFirstRun() {
         h('div.first-run-mark', {}, icon('notebook')),
         h('p.lead', {}, t('firstRun.intro')),
         deviceNameField(device, (v) => { device = v; }),
+        folderSupported ? folderField() : null,
         msg, go,
       ],
     });

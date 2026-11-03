@@ -110,6 +110,8 @@ Tutto il resto (impostazioni, cestino, copertina, importazione) si apre sopra co
 
 **Sul dispositivo, prima di tutto.** Quadernone non ha un server e non ti chiede un account. Le note si salvano nell'archivio interno del browser, così l'app si apre e funziona anche in aereo o in metropolitana.
 
+**In una cartella vera, come file.** Al primo avvio (o in Impostazioni › *Cartella sul dispositivo*) scegli una cartella, per esempio `Documenti/Quadernone`: ogni nota viene scritta lì come file in chiaro, un istante dopo ogni modifica, con la stessa struttura di Drive. Se cancelli i dati del browser o reinstalli l'app, scegli di nuovo la stessa cartella e **tutte le note tornano**. Su PC il permesso si dà una volta; su Android il browser lo richiede a ogni riapertura dell'app, con un tocco su *Consenti* (nel frattempo le note si salvano comunque e la cartella si aggiorna appena dai il permesso).
+
 **Su Google Drive, se vuoi.** Con *Accedi con Google* nel tuo Drive compare la cartella **`Quadernone`**, con le tue cartelle e una cartella per ogni nota. Da lì le note arrivano agli altri dispositivi in pochi secondi.
 
 ```

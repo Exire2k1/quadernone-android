@@ -7,6 +7,7 @@ import { store } from '../store.js';
 import { openPanel, confirmDialog } from '../ui/panel.js';
 import { drive } from '../local/drive.js';
 import { driveSync } from '../local/drivesync.js';
+import { folderMirror, supported as folderSupported } from '../local/folder.js';
 import * as disk from '../local/disk.js';
 import { exportArchive, importArchive } from '../local/backup.js';
 import { saveFile } from '../export/pdfexport.js';
@@ -90,6 +91,46 @@ export function openSettings({ onSyncNow }) {
   drive.addEventListener('change', onDriveChange);
   renderDrive();
 
+  // ---- folder on the device
+  const folderBox = h('div');
+  function renderFolder() {
+    const fm = folderMirror;
+    const children = [h('p.hint', {}, t('folder.intro'))];
+    if (!folderSupported) { children.push(h('p.form-msg', {}, t('folder.unsupported'))); folderBox.replaceChildren(...children); return; }
+    const pick = async () => {
+      try {
+        const res = await fm.choose();
+        if (!res) return;
+        toast(res.restored ? t('folder.restored', { n: res.restored }) : t('folder.chosen', { name: fm.name }));
+        if (res.restored) await store.load().catch(() => {});
+      } catch (e) { toastError(e); }
+    };
+    if (!fm.handle) {
+      children.push(h('p.form-msg', {}, t('folder.none')),
+        h('div.btn-row', {}, h('button.btn.primary', { type: 'button', onclick: pick }, t('folder.choose'))));
+    } else {
+      const status = fm.state === 'needs-permission' ? t('folder.perm') : fm.state === 'syncing' ? t(fm.message === 'restore' ? 'folder.restoring' : 'folder.syncing')
+        : fm.state === 'error' ? t('folder.errorState', { msg: fm.message }) : t('folder.ready');
+      children.push(
+        h('div.field.inline', {}, h('span.field-label', {}, t('folder.current')), h('span.value', {}, fm.name)),
+        h('div.field.inline', {}, h('span.field-label', {}, t('folder.status')), h('span.value', {}, status)),
+        h('div.field.inline', {}, h('span.field-label', {}, t('folder.last')), h('span.value', {}, fm.lastSync ? formatFull(fm.lastSync) : t('settings.never'))),
+        h('div.btn-row', {},
+          fm.state === 'needs-permission'
+            ? h('button.btn.primary', { type: 'button', onclick: async () => { try { const r = await fm.reconnect(); if (r?.restored) await store.load().catch(() => {}); } catch (e) { toastError(e); } } }, t('folder.allow'))
+            : h('button.btn', { type: 'button', onclick: () => fm.syncNow() }, t('folder.writeNow')),
+          h('button.btn', { type: 'button', onclick: pick }, t('folder.change')),
+          h('button.btn', { type: 'button', onclick: async () => {
+            if (await confirmDialog({ title: t('folder.forgetTitle'), body: t('folder.forgetBody'), confirmLabel: t('folder.forget') })) await fm.forget();
+          } }, t('folder.forget'))),
+        /android/i.test(navigator.userAgent) ? h('p.hint', {}, t('folder.androidHint')) : null);
+    }
+    folderBox.replaceChildren(...children.filter(Boolean));
+  }
+  const onFolderChange = () => { if (folderBox.isConnected) renderFolder(); };
+  folderMirror.addEventListener('change', onFolderChange);
+  renderFolder();
+
   // ---- data on this device
   const usage = h('p.hint', {});
   Promise.all([disk.usage(), navigator.storage?.persisted?.().catch(() => false)]).then(([u, persisted]) => {
@@ -168,6 +209,7 @@ export function openSettings({ onSyncNow }) {
   renderFingerHint();
 
   const body = [
+    group(t('folder.title'), folderBox),
     group(t('settings.drive'), driveBox),
     group(t('settings.data'),
       usage,

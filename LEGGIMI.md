@@ -42,6 +42,15 @@ Serve solo se vuoi la sincronizzazione con Drive. L'ID client **non è un segret
 - Al primo avvio scegli il nome del dispositivo (Tablet, Telefono…). Poi, se vuoi, Impostazioni › Google Drive › **Accedi con Google**.
 - Il token di Google dura un'ora. Quando scade, l'indicatore in basso nella Libreria mostra "Tocca per ricollegare Google Drive": un tocco e si riapre la finestra di Google, già compilata. Le note intanto si salvano comunque sul dispositivo.
 
+### Cartella sul dispositivo (per non perdere le note)
+
+- Al primo avvio, in **Cartella delle note**, tocca *Scegli cartella…* e crea o scegli `Documenti/Quadernone`. Oppure più tardi: Impostazioni › **Cartella sul dispositivo**.
+- Le note vengono scritte lì come file in chiaro (`meta.json`, `pages.json`, `ink/…`, `attachments/…`), nella stessa struttura di Drive.
+- **Se cancelli i dati del browser** o reinstalli l'app: al primo avvio scegli di nuovo la stessa cartella e le note vengono ripristinate.
+- **Android:** a ogni riapertura dell'app compare "Quadernone chiede il permesso" › **Consenti**. Finché non lo tocchi le note si salvano comunque sul dispositivo; la cartella si aggiorna appena dai il permesso.
+- **PC:** quando Chrome o Edge lo chiede, scegli "Consenti a ogni visita" e non te lo chiede più.
+- Funziona con Chrome ed Edge recenti (su Android dalla versione 132).
+
 ### Aprire i PDF con Quadernone
 
 - **PC (Windows):** tasto destro su un PDF › **Apri con** › *Quadernone*. Se non compare, scegli "Scegli un'altra app" e cercalo nell'elenco. Serve l'app installata da Chrome o Edge.

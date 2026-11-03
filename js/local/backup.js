@@ -81,23 +81,39 @@ export async function isArchive(file) {
  * Adds the notes of an archive. targetFolderId: where the archive's top level goes (null = root).
  * Resolves to { imported, skipped, failed: [{ path, reason }] }.
  */
-export async function importArchive(file, { targetFolderId = null, onProgress, device = 'Importazione' } = {}) {
+export async function importArchive(file, opts = {}) {
   const JSZip = await zipLib();
   const zip = await JSZip.loadAsync(file);
   const paths = Object.keys(zip.files).filter((p) => !zip.files[p].dir);
+  return importSource({
+    paths,
+    text: (p) => (zip.files[p] ? zip.files[p].async('string') : null),
+    blob: (p) => zip.files[p].async('blob'),
+  }, opts);
+}
+
+/**
+ * Same as importArchive, from any tree of files in that layout: source.paths lists every
+ * file ('a/b/meta.json'), source.text(path) reads one as text (null if missing),
+ * source.blob(path) as a Blob. Used for the .zip and for the folder on the device
+ * (local/folder.js).
+ */
+export async function importSource(source, { targetFolderId = null, onProgress, device = 'Importazione' } = {}) {
+  const { paths } = source;
+  const has = new Set(paths);
   const noteDirs = paths.filter((p) => /(^|\/)meta\.json$/.test(p)).map((p) => p.slice(0, -'meta.json'.length).replace(/\/$/, ''))
-    .filter((d) => zip.files[(d ? d + '/' : '') + 'pages.json'] && !/(^|\/)(_app|backup)(\/|$)/.test(d));
+    .filter((d) => has.has((d ? d + '/' : '') + 'pages.json') && !/(^|\/)(_app|backup)(\/|$)/.test(d));
   const folderInfo = new Map();   // dir path -> .folder.json
   for (const p of paths) {
     if (!/(^|\/)\.folder\.json$/.test(p)) continue;
-    try { folderInfo.set(p.slice(0, -'/.folder.json'.length), JSON.parse(await zip.files[p].async('string'))); } catch { /* broken: treated as a plain folder */ }
+    try { folderInfo.set(p.slice(0, -'/.folder.json'.length), JSON.parse(await source.text(p))); } catch { /* broken: treated as a plain folder */ }
   }
   const out = { imported: 0, skipped: 0, failed: [] };
   const folderIds = new Map();   // dir path -> local folder id
   let done = 0;
   for (const dir of noteDirs) {
     try {
-      const read = async (name) => zip.files[`${dir}/${name}`] ? zip.files[`${dir}/${name}`].async('string') : null;
+      const read = async (name) => (has.has(`${dir}/${name}`) ? source.text(`${dir}/${name}`) : null);
       const meta = JSON.parse(await read('meta.json'));
       // Validated like a save; inkRevision is kept as stored (validateDocument takes it from "current").
       const rawPages = JSON.parse(await read('pages.json'));
@@ -122,7 +138,7 @@ export async function importArchive(file, { targetFolderId = null, onProgress, d
         if (!p.startsWith(dir + '/')) continue;
         const rel = p.slice(dir.length + 1);
         if (/^(attachments|previews)\/[^/]+$/.test(rel) || rel === 'cover.png' || rel === 'pdftext.json') {
-          blobs.push({ path: rel, blob: await zip.files[p].async('blob') });
+          blobs.push({ path: rel, blob: await source.blob(p) });
         }
       }
       const res = await disk.write(STORES, async (s) => {

@@ -20,6 +20,7 @@ import * as disk from './local/disk.js';
 import { drive } from './local/drive.js';
 import { driveSync } from './local/drivesync.js';
 import { listenForOpenedFiles } from './import/opened.js';
+import { folderMirror } from './local/folder.js';
 
 const screens = document.getElementById('screens');
 let library = null;
@@ -139,6 +140,29 @@ function registerServiceWorker() {
   });
 }
 
+// ------------------------------------------------------------------ folder on the device
+/** Starts the folder mirror; when the folder needs the permission again, one tap gives it. */
+function startFolder() {
+  let dismiss = null;
+  folderMirror.addEventListener('change', () => {
+    if (folderMirror.state === 'needs-permission') {
+      dismiss ||= toast(t('folder.needsPermission', { name: folderMirror.name }), {
+        duration: 0, kind: 'warn',
+        action: { label: t('folder.allow'), fn: () => { dismiss = null; reconnectFolder(); } },
+      });
+    } else if (dismiss) { dismiss(); dismiss = null; }
+    if (folderMirror.state === 'error') toast(t('folder.error', { msg: folderMirror.message }), { kind: 'error', duration: 8000 });
+  });
+  folderMirror.start().catch(() => {});
+}
+
+async function reconnectFolder() {
+  try {
+    const res = await folderMirror.reconnect();
+    if (res?.restored) { toast(t('folder.restored', { n: res.restored })); await store.load().catch(() => {}); }
+  } catch (e) { toastError(e); }
+}
+
 // ------------------------------------------------------------------ boot
 async function boot() {
   installLocalServer();
@@ -164,6 +188,7 @@ async function boot() {
   listenForOpenedFiles({ openNote: (id) => openNote(id), refresh: () => store.load() });
   store.startPolling();
   driveSync.start(store);
+  startFolder();
 
   // Changes made by the Drive sync or in another tab of the app: the Library catches up.
   disk.onChange((info) => { if (info.fromDrive || info.remote || info.import) store.poll(); });
