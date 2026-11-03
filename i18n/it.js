@@ -165,6 +165,10 @@ export default {
     summary: 'Importate {ok} note su {n}.', summaryErrors: 'Importate {ok} note su {n}: {bad} non riuscite (vedi l\'elenco).',
     textTitle: 'Testo', close: 'Chiudi', reading: 'Leggo l\'archivio…',
   },
+  opened: {
+    importing: 'Apro «{name}» come nuova nota…', failed: '«{name}» non si è potuto aprire: {reason}',
+    many: '{n} PDF aperti come nuove note nella cartella principale.', notPdf: '{n} file ignorati: si possono aprire solo PDF.',
+  },
   search: {
     title: 'Cerca', placeholder: 'Cerca nei titoli, nel testo e nei PDF', thisFolder: 'Solo questa cartella', onlyPdf: 'Solo PDF',
     from: 'Dal', to: 'Al', none: 'Nessun risultato.', results: '{n} note', offline: 'Ricerca non riuscita.',
@@ -176,7 +180,7 @@ export default {
     sideButtonWindows: 'Suggerimento: il tasto laterale della penna passa da Penna a Gomma (pressione breve) e seleziona col lazo finché lo tieni premuto. Se non funziona, controlla in Impostazioni di Windows › Bluetooth e dispositivi › Penna e Windows Ink.',
   },
   pages: {
-    title: 'Pagine', add: 'Aggiungi pagina', more: 'Azioni pagina', drag: 'Trascina per spostare', page: 'Pagina {n}',
+    title: 'Pagine', add: 'Aggiungi pagina', added: 'Pagina {n} aggiunta', pullMore: 'Continua per una pagina nuova', pullRelease: 'Rilascia: pagina nuova', more: 'Azioni pagina', drag: 'Trascina per spostare', page: 'Pagina {n}',
     insertBefore: 'Pagina vuota prima', insertAfter: 'Pagina vuota dopo', duplicate: 'Duplica', delete: 'Elimina pagina',
     deleteTitle: 'Eliminare la pagina {n}?', deleteBody: 'Il suo contenuto si può recuperare con Annulla finché la nota è aperta.',
   },

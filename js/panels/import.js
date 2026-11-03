@@ -62,8 +62,8 @@ async function expand(list, onStatus) {
   return out;
 }
 
-const kindOf = (f) => (isSdocx(f) ? 'samsung' : isPdf(f) ? 'pdf' : isTxt(f) ? 'txt' : isSlides(f) ? 'slides' : isImage(f) ? 'image' : null);
-const titleOf = (name) => (/\.sdocx$/i.test(name) ? sdocxTitle(name) : name.replace(/\.[^.]+$/, '').trim() || t('newNote.untitled'));
+export const kindOf = (f) => (isSdocx(f) ? 'samsung' : isPdf(f) ? 'pdf' : isTxt(f) ? 'txt' : isSlides(f) ? 'slides' : isImage(f) ? 'image' : null);
+export const titleOf = (name) => (/\.sdocx$/i.test(name) ? sdocxTitle(name) : name.replace(/\.[^.]+$/, '').trim() || t('newNote.untitled'));
 const iso = (ms) => (ms ? new Date(ms).toISOString() : null);
 
 export function openImport({ folderId = null, onDone = () => {} } = {}) {
@@ -172,84 +172,7 @@ export function openImport({ folderId = null, onDone = () => {} } = {}) {
     await store.load().catch(() => {});
   }
 
-  async function importOne(it, folder) {
-    if (it.kind === 'archive') {
-      const res = await importArchive(it.file, { targetFolderId: folder, onProgress: (done, total) => { it.reason = t('settings.importing', { done, total }); render(); } });
-      it.reason = t('settings.imported', { n: res.imported, skipped: res.skipped }) + (res.failed.length ? ' · ' + res.failed.map((f) => `${f.path}: ${f.reason}`).join('; ') : '');
-      if (!res.imported && res.failed.length) throw new Error(it.reason);
-      return;
-    }
-    if (it.kind === 'samsung') {
-      await importSdocx(it.file, folder, { title: titleOf(it.name), onStatus: (s) => { it.reason = s; render(); } });
-      it.reason = '';
-      return;
-    }
-    const pageDefaults = it.kind === 'txt' ? A4_LINED : prefs.get('pageDefaults');
-    const created = await request('POST', '/notes', {
-      folderId: folder, title: titleOf(it.name), pageDefaults, created: iso(it.lastModified), modified: iso(it.lastModified),
-    });
-    const id = created.note.id;
-    const note = await request('GET', `/notes/${id}`);
-    const save = (pages, meta) => request('PUT', `/notes/${id}`, { baseRevision: note.meta.revision, pages: { ...note.pages, pages }, ...(meta ? { meta } : {}) });
-    const first = note.pages.pages[0];
-    if (it.kind === 'txt') {
-      const text = (await it.file.text()).replace(/\r\n?/g, '\n');
-      const blocks = text.split('\n').map((line) => ({ t: 'p', runs: line ? [{ text: line }] : [] }));
-      const obj = { id: 'ob-' + hex(4), type: 'text', x: 20, y: 24, w: 170, h: Math.max(20, blocks.length * 6.5), rotation: 0, z: 1, locked: false,
-        blocks, style: { color: '#1A1A1A', sizePt: 12, align: 'left' } };
-      await save([{ ...first, objects: [obj] }]);
-      return;
-    }
-    if (it.kind === 'image') {
-      const prep = await prepareImage(it.file);
-      const tag = hex(4);
-      const orig = await files.upload(id, it.file, `img-${tag}.${imageExt(it.file, it.name)}`);
-      const view = Math.max(prep.natW, prep.natH) > 2560 || !/^(jpe?g|png|webp|gif)$/.test(imageExt(it.file, it.name))
-        ? await files.upload(id, prep.view, `img-${tag}-view.${prep.viewExt}`) : null;
-      const obj = makeImageObject('ob-' + hex(4), { file: orig, view, natW: prep.natW, natH: prep.natH }, first, null, 1);
-      const page = { ...first, objects: [obj] };
-      await save([page]);
-      const bmp = await createImageBitmap(prep.view);
-      await putCover(id, await renderCoverPng(page, [], { images: new Map([[obj.id, bmp]]) }));
-      return;
-    }
-    // PDF and slides
-    let pdfName, blob = it.file;
-    if (it.kind === 'slides') {
-      const up = await files.upload(id, it.file, it.name);
-      const conv = await request('POST', '/convert/pptx', { noteId: id, name: up }, { timeoutMs: 180000 });
-      pdfName = conv.name;
-      blob = await files.getFile(id, pdfName);
-    } else {
-      pdfName = await files.upload(id, it.file, it.name.replace(/\.pdf$/i, '') + '.pdf');
-    }
-    let pdf;
-    try { pdf = await openPdf(new Uint8Array(await blob.arrayBuffer())); } catch (e) {
-      throw new Error(e?.name === 'PasswordException' ? t('insert.pdfProtected', { name: it.name }) : t('insert.pdfBroken', { name: it.name }));
-    }
-    const pages = [], texts = [];
-    for (let i = 0; i < pdf.numPages; i++) {
-      const size = await pageSizeMm(pdf, i);
-      pages.push({
-        id: 'pg-' + hex(4), size: { preset: 'pdf', widthMm: size.widthMm, heightMm: size.heightMm },
-        orientation: size.widthMm > size.heightMm ? 'landscape' : 'portrait',
-        background: { ...first.background, type: 'blank', paperColor: 'white' }, pdf: { file: pdfName, pageIndex: i }, inkRevision: 0, objects: [],
-      });
-      texts.push({ pageIndex: i, text: await pageText(pdf, i).catch(() => '') });
-    }
-    await save(pages);
-    await request('PUT', `/notes/${id}/pdftext/${encodeURIComponent(pdfName)}`, { pages: texts });
-    // Cover: the first PDF page.
-    try {
-      const pg = await pdf.getPage(1);
-      const vp = pg.getViewport({ scale: 400 / pg.getViewport({ scale: 1 }).width });
-      const c = document.createElement('canvas');
-      c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-      await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, background: 'white' }).promise;
-      await putCover(id, await renderCoverPng(pages[0], [], { pdf: c }));
-    } catch { /* the cover is made when the note is opened */ }
-    pdf.destroy();
-  }
+  const importOne = (it, folder) => importItem(it, folder, () => render());
 }
 
 async function putCover(id, png) {
@@ -257,4 +180,90 @@ async function putCover(id, png) {
     method: 'PUT', body: png,
     headers: { 'Content-Type': 'image/png', 'X-Quadernone-Token': prefs.get('token'), 'X-Quadernone-Device': prefs.get('deviceName') },
   }).catch(() => {});
+}
+
+/**
+ * Imports one file as a new note in `folder` (null = the main folder) and returns the new
+ * note's id (null for an archive, which can hold many notes). `it` is { file, name, kind,
+ * lastModified }; it.reason gets progress messages, and onUpdate() is called when it changes.
+ */
+export async function importItem(it, folder, onUpdate = () => {}) {
+  const render = onUpdate;
+  if (it.kind === 'archive') {
+    const res = await importArchive(it.file, { targetFolderId: folder, onProgress: (done, total) => { it.reason = t('settings.importing', { done, total }); render(); } });
+    it.reason = t('settings.imported', { n: res.imported, skipped: res.skipped }) + (res.failed.length ? ' · ' + res.failed.map((f) => `${f.path}: ${f.reason}`).join('; ') : '');
+    if (!res.imported && res.failed.length) throw new Error(it.reason);
+    return null;
+  }
+  if (it.kind === 'samsung') {
+    const id = await importSdocx(it.file, folder, { title: titleOf(it.name), onStatus: (s) => { it.reason = s; render(); } });
+    it.reason = '';
+    return id || null;
+  }
+  const pageDefaults = it.kind === 'txt' ? A4_LINED : prefs.get('pageDefaults');
+  const created = await request('POST', '/notes', {
+    folderId: folder, title: titleOf(it.name), pageDefaults, created: iso(it.lastModified), modified: iso(it.lastModified),
+  });
+  const id = created.note.id;
+  const note = await request('GET', `/notes/${id}`);
+  const save = (pages, meta) => request('PUT', `/notes/${id}`, { baseRevision: note.meta.revision, pages: { ...note.pages, pages }, ...(meta ? { meta } : {}) });
+  const first = note.pages.pages[0];
+  if (it.kind === 'txt') {
+    const text = (await it.file.text()).replace(/\r\n?/g, '\n');
+    const blocks = text.split('\n').map((line) => ({ t: 'p', runs: line ? [{ text: line }] : [] }));
+    const obj = { id: 'ob-' + hex(4), type: 'text', x: 20, y: 24, w: 170, h: Math.max(20, blocks.length * 6.5), rotation: 0, z: 1, locked: false,
+      blocks, style: { color: '#1A1A1A', sizePt: 12, align: 'left' } };
+    await save([{ ...first, objects: [obj] }]);
+    return id;
+  }
+  if (it.kind === 'image') {
+    const prep = await prepareImage(it.file);
+    const tag = hex(4);
+    const orig = await files.upload(id, it.file, `img-${tag}.${imageExt(it.file, it.name)}`);
+    const view = Math.max(prep.natW, prep.natH) > 2560 || !/^(jpe?g|png|webp|gif)$/.test(imageExt(it.file, it.name))
+      ? await files.upload(id, prep.view, `img-${tag}-view.${prep.viewExt}`) : null;
+    const obj = makeImageObject('ob-' + hex(4), { file: orig, view, natW: prep.natW, natH: prep.natH }, first, null, 1);
+    const page = { ...first, objects: [obj] };
+    await save([page]);
+    const bmp = await createImageBitmap(prep.view);
+    await putCover(id, await renderCoverPng(page, [], { images: new Map([[obj.id, bmp]]) }));
+    return id;
+  }
+  // PDF and slides
+  let pdfName, blob = it.file;
+  if (it.kind === 'slides') {
+    const up = await files.upload(id, it.file, it.name);
+    const conv = await request('POST', '/convert/pptx', { noteId: id, name: up }, { timeoutMs: 180000 });
+    pdfName = conv.name;
+    blob = await files.getFile(id, pdfName);
+  } else {
+    pdfName = await files.upload(id, it.file, it.name.replace(/\.pdf$/i, '') + '.pdf');
+  }
+  let pdf;
+  try { pdf = await openPdf(new Uint8Array(await blob.arrayBuffer())); } catch (e) {
+    throw new Error(e?.name === 'PasswordException' ? t('insert.pdfProtected', { name: it.name }) : t('insert.pdfBroken', { name: it.name }));
+  }
+  const pages = [], texts = [];
+  for (let i = 0; i < pdf.numPages; i++) {
+    const size = await pageSizeMm(pdf, i);
+    pages.push({
+      id: 'pg-' + hex(4), size: { preset: 'pdf', widthMm: size.widthMm, heightMm: size.heightMm },
+      orientation: size.widthMm > size.heightMm ? 'landscape' : 'portrait',
+      background: { ...first.background, type: 'blank', paperColor: 'white' }, pdf: { file: pdfName, pageIndex: i }, inkRevision: 0, objects: [],
+    });
+    texts.push({ pageIndex: i, text: await pageText(pdf, i).catch(() => '') });
+  }
+  await save(pages);
+  await request('PUT', `/notes/${id}/pdftext/${encodeURIComponent(pdfName)}`, { pages: texts });
+  // Cover: the first PDF page.
+  try {
+    const pg = await pdf.getPage(1);
+    const vp = pg.getViewport({ scale: 400 / pg.getViewport({ scale: 1 }).width });
+    const c = document.createElement('canvas');
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    await pg.render({ canvasContext: c.getContext('2d'), viewport: vp, background: 'white' }).promise;
+    await putCover(id, await renderCoverPng(pages[0], [], { pdf: c }));
+  } catch { /* the cover is made when the note is opened */ }
+  pdf.destroy();
+  return id;
 }

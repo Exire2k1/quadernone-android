@@ -96,8 +96,12 @@ export function createEditor({ goBack, openNote }) {
   const banner = h('div.conflict-banner', { hidden: true });
   const scroller = h('div.editor-scroll', { tabIndex: -1 });
   const pageIndicator = h('div.page-indicator', { role: 'status' });
+  // "New page" gauge, shown while pulling past the end of the last page (see PageView).
+  const pullFill = h('span.pull-fill');
+  const pullText = h('span.pull-text');
+  const pullHint = h('div.pull-hint', { hidden: true, 'aria-hidden': 'true' }, h('span.pull-gauge', {}, pullFill), pullText);
   const barSlot = h('div.textbar-slot');
-  const stage = h('div.editor-stage', {}, scroller, pageIndicator);
+  const stage = h('div.editor-stage', {}, scroller, pageIndicator, pullHint);
   const root = h('div.editor', {}, toolbar, barSlot, banner, stage);
   tools.addEventListener('change', () => renderTools());
 
@@ -184,6 +188,14 @@ export function createEditor({ goBack, openNote }) {
     listeners = new AbortController();
     const on = { signal: listeners.signal };
     view.addEventListener('pagechange', () => { renderIndicator(); renderBars(); doc.save(); });
+    view.addEventListener('pull', (e) => renderPull(e.detail));
+    view.addEventListener('pullpage', () => {
+      objects.endEdit();
+      const at = doc.list.length;
+      pageActions.appendPage();
+      view.scrollToPage(at, { smooth: true });
+      toast(t('pages.added', { n: at + 1 }), { duration: 2000 });
+    });
     view.addEventListener('zoom', () => { zoomBtn.textContent = view.percent + '%'; prefs.set('zoomMode', view.zoomMode); });
     doc.addEventListener('change', renderUndo, on);
     doc.addEventListener('state', renderSaveState, on);
@@ -398,6 +410,15 @@ export function createEditor({ goBack, openNote }) {
     saveDot.setAttribute('aria-label', saveDot.title);
   }
 
+  function renderPull({ progress, ready }) {
+    pullHint.hidden = progress <= 0;
+    pullHint.classList.toggle('ready', ready);
+    pullHint.style.setProperty('--p', String(progress));
+    pullText.textContent = t(ready ? 'pages.pullRelease' : 'pages.pullMore');
+    if (ready && !pullHint.dataset.buzzed) { pullHint.dataset.buzzed = '1'; navigator.vibrate?.(12); }
+    if (!ready) delete pullHint.dataset.buzzed;
+  }
+
   function renderIndicator() {
     if (!doc) return;
     pageIndicator.textContent = `${view.current + 1} / ${doc.list.length}`;
@@ -408,6 +429,16 @@ export function createEditor({ goBack, openNote }) {
       doc.change(() => {
         const d = doc.pages.defaults;
         doc.list.splice(index, 0, { id: newPageId(), size: structuredClone(d.size), orientation: d.orientation, background: structuredClone(d.background), pdf: null, inkRevision: 0, objects: [] });
+      });
+      view.setPages(doc.list);
+      renderIndicator();
+    },
+    /** A page at the end, like the last one (the note's default format after a PDF page). */
+    appendPage() {
+      doc.change(() => {
+        const last = doc.list[doc.list.length - 1];
+        const src = last && !last.pdf && last.size.preset !== 'infinite' ? last : doc.pages.defaults;
+        doc.list.push({ id: newPageId(), size: structuredClone(src.size), orientation: src.orientation, background: structuredClone(src.background), pdf: null, inkRevision: 0, objects: [] });
       });
       view.setPages(doc.list);
       renderIndicator();

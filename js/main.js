@@ -19,6 +19,7 @@ import * as diag from './diag.js';
 import * as disk from './local/disk.js';
 import { drive } from './local/drive.js';
 import { driveSync } from './local/drivesync.js';
+import { listenForOpenedFiles } from './import/opened.js';
 
 const screens = document.getElementById('screens');
 let library = null;
@@ -26,6 +27,13 @@ let editor = null;
 
 // ------------------------------------------------------------------ router
 const NOTE_RE = /^#\/nota\/([0-9a-f-]{36})\/?(?:\?(.*))?$/;
+// "?condiviso" is where the service worker lands after a share (see import/opened.js): the
+// files are picked up from its cache, the address goes back to the plain one.
+if (new URLSearchParams(location.search).has('condiviso')) {
+  const q = new URLSearchParams(location.search);
+  q.delete('condiviso');
+  history.replaceState(history.state, '', location.pathname + (q.size ? '?' + q : '') + location.hash);
+}
 const HOME = location.pathname + location.search;
 
 function navigate(hash, { replace = false } = {}) {
@@ -152,6 +160,8 @@ async function boot() {
     openCover: (n) => openCoverPanel(n),
   });
   await route();
+  // PDFs opened or shared "with Quadernone": each becomes a note (one file: opened at once).
+  listenForOpenedFiles({ openNote: (id) => openNote(id), refresh: () => store.load() });
   store.startPolling();
   driveSync.start(store);
 

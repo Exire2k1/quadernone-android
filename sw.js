@@ -2,12 +2,16 @@
 // - App shell: precached, cache-first. A new VERSION installs a new cache; the app updates
 //   itself when no note is open (see js/main.js).
 // - pdf.js fonts are kept the first time a PDF needs them.
+// - "Condividi › Quadernone" (manifest share_target): the shared files are POSTed to
+//   ./condividi; they are kept in SHARE and the app is opened at ./?condiviso, where
+//   js/import/opened.js turns them into notes.
 // - Nothing else is touched: notes never go through here (they are in IndexedDB), and Google
 //   (sign-in, Drive) always goes straight to the network.
 // Paths are relative to the worker's scope, so the app can live in any folder of any host.
-const VERSION = '1.0.3'; // keep in sync with js/version.js
+const VERSION = '1.0.4'; // keep in sync with js/version.js
 const SHELL = `qnl-shell-${VERSION}`;
 const RUNTIME = 'qnl-runtime-v1';
+const SHARE = 'qnl-shared-files'; // same name in js/import/opened.js
 
 const SHELL_FILES = [
   './',
@@ -71,6 +75,7 @@ const SHELL_FILES = [
   'js/panels/search.js',
   'js/panels/settings.js',
   'js/panels/trash.js',
+  'js/import/opened.js',
   'js/import/samsung.js',
   'js/import/sdocx.js',
   'js/local/backup.js',
@@ -117,6 +122,10 @@ self.addEventListener('message', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
+  if (url.origin === self.location.origin && e.request.method === 'POST' && url.href.split(/[?#]/)[0] === scoped('condividi')) {
+    e.respondWith(receiveShare(e.request));
+    return;
+  }
   if (url.origin !== self.location.origin || e.request.method !== 'GET') return;
   if (!url.href.startsWith(self.registration.scope)) return;
   e.respondWith(handle(e.request, url));
@@ -135,4 +144,22 @@ async function handle(request, url) {
   } catch {
     return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
   }
+}
+
+// Files shared to the app: kept until the app has read them, then the app is opened.
+async function receiveShare(request) {
+  try {
+    const form = await request.formData();
+    const cache = await caches.open(SHARE);
+    let i = 0;
+    for (const f of form.getAll('file')) {
+      if (!(f instanceof File) || !f.size) continue;
+      await cache.put(new Request(scoped(`condiviso/${Date.now()}-${i++}`)), new Response(f, { headers: {
+        'Content-Type': f.type || 'application/octet-stream',
+        'X-Qn-Name': encodeURIComponent(f.name || 'Documento.pdf'),
+        'X-Qn-Modified': String(f.lastModified || Date.now()),
+      } }));
+    }
+  } catch { /* nothing readable was shared: the app just opens */ }
+  return Response.redirect(scoped('./?condiviso'), 303);
 }

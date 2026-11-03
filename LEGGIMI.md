@@ -42,6 +42,12 @@ Serve solo se vuoi la sincronizzazione con Drive. L'ID client **non è un segret
 - Al primo avvio scegli il nome del dispositivo (Tablet, Telefono…). Poi, se vuoi, Impostazioni › Google Drive › **Accedi con Google**.
 - Il token di Google dura un'ora. Quando scade, l'indicatore in basso nella Libreria mostra "Tocca per ricollegare Google Drive": un tocco e si riapre la finestra di Google, già compilata. Le note intanto si salvano comunque sul dispositivo.
 
+### Aprire i PDF con Quadernone
+
+- **PC (Windows):** tasto destro su un PDF › **Apri con** › *Quadernone*. Se non compare, scegli "Scegli un'altra app" e cercalo nell'elenco. Serve l'app installata da Chrome o Edge.
+- **Android:** un'app installata dal browser non può comparire in "Apri con", ma compare in **Condividi**: nel gestore file, in Gmail, in Drive o nel lettore PDF › Condividi › *Quadernone*.
+- Il PDF diventa una nota nuova nella cartella principale e si apre subito. Se l'app era già installata prima della versione 1.0.4, Android aggiorna l'icona entro un giorno circa; se "Quadernone" non compare tra le app di Condividi, aprila una volta e riprova più tardi.
+
 > **Importante senza Drive:** il browser può cancellare i dati dei siti se il dispositivo resta senza spazio. Un'app installata è protetta. In ogni caso, collega Drive oppure fai ogni tanto **Esporta tutto (.zip)**.
 
 ## 4. Portare le note dal server di casa

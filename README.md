@@ -81,12 +81,14 @@ Tutto il resto (impostazioni, cestino, copertina, importazione) si apre sopra co
 - **Sfondi:** bianco, a righe, a quadretti o a puntini, con spaziatura e colore delle righe a scelta.
 - **Colori della carta:** bianca, avorio, sabbia, grigia o scura (con righe chiare).
 - Sfondo e formato si cambiano **per pagina o per tutta la nota**, anche dopo: la scrittura non si sposta.
+- **Pagina nuova scorrendo:** arrivato in fondo all'ultima pagina, continua a scorrere (col dito, la rotella o il touchpad) finché l'indicatore in basso si riempie: compare una pagina nuova, uguale all'ultima. Si toglie con Annulla.
 - **Pannello Pagine:** miniature per saltare, trascinare e riordinare, duplicare, eliminare.
 - **Nessun pulsante Salva:** ogni modifica si salva da sola dopo un istante.
 
 ## PDF, slide e immagini
 
 - **PDF:** ogni pagina del PDF diventa una pagina della nota, su cui puoi scrivere. L'originale resta intatto tra gli allegati e puoi inserire pagine bianche tra quelle del PDF.
+- **Apri i PDF con Quadernone:** su PC (Chrome o Edge, app installata) tasto destro sul PDF › *Apri con* › Quadernone; su Android, da qualsiasi app *Condividi* › Quadernone. Il PDF diventa una nota nuova nella cartella principale e si apre subito, pronto da annotare.
 - **Slide `.pptx`:** diventano pagine annotabili, convertite tramite Google Drive.
 - **Immagini:** da file, galleria, fotocamera o appunti. Puoi ritagliarle, ruotarle, cambiarne l'opacità, bloccarle o usarle come copertina.
 - **Esporta PDF:** la nota esce come PDF con scrittura, testo e immagini sopra le pagine originali, uguale a come la vedi. Con più note esce un `.zip`.

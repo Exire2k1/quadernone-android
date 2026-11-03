@@ -7,6 +7,9 @@
 // - Backgrounds are drawn into canvas tiles (≤ TILE_PX tall), so long "infinite" pages
 //   and high zoom stay sharp without giant canvases.
 // - Zoom: pinch (two fingers), Ctrl+wheel, or setScale()/fit().
+// - Pull past the end: dragging (finger) or scrolling (wheel, touchpad) on beyond the
+//   bottom of the last page fills a "new page" gauge; when it is full the view fires
+//   'pullpage' (the editor adds a page). 'pull' events report the gauge as it moves.
 import { drawBackground, paperFill } from './paper.js';
 import * as diag from '../diag.js';
 
@@ -24,6 +27,13 @@ const PINCH_DEADZONE_PX = 14;
 // Kinetic scrolling after a finger flick.
 const FLING_MIN_SPEED = 0.15;     // px/ms
 const FLING_TIME_CONSTANT = 325;  // ms
+// Pull past the end: how far to drag beyond the bottom (finger), and how much wheel
+// travel counts (a mouse notch is ~100 px, so about four notches past the end).
+const PULL_PX = 150;
+const PULL_WHEEL_FACTOR = 0.4;
+const PULL_WHEEL_IDLE_MS = 450;     // the gauge empties when the wheel stops
+const PULL_WHEEL_SETTLE_MS = 350;   // wheel momentum that brought the view to the end does not count
+const PULL_COOLDOWN_MS = 900;       // one page per push
 
 export class PageView extends EventTarget {
   pages = [];
@@ -35,6 +45,8 @@ export class PageView extends EventTarget {
   #lefts = [];
   #raf = 0;
   #pinch = null;
+  #pull = 0;                // px pulled beyond the end (see PULL_PX)
+  #lastScroll = { top: 0, t: 0 };
 
   /**
    * hooks.mount(page, objEl) / hooks.unmount(page, objEl): put the page's objects in objEl.
@@ -49,7 +61,10 @@ export class PageView extends EventTarget {
     // Every listener on the scroller is removed in dispose(): the scroller element stays
     // when another note is opened, and listeners of an old view would move the new pages.
     this.#ac = new AbortController();
-    scroller.addEventListener('scroll', () => this.#schedule(), { passive: true, signal: this.#ac.signal });
+    scroller.addEventListener('scroll', () => {
+      if (scroller.scrollTop !== this.#lastScroll.top) this.#lastScroll = { top: scroller.scrollTop, t: performance.now() };
+      this.#schedule();
+    }, { passive: true, signal: this.#ac.signal });
     this.#ro = new ResizeObserver(() => { if (this.zoomMode !== 'custom') this.fit(this.zoomMode, { keep: true }); else this.layout(); });
     this.#ro.observe(scroller);
     this.#bindZoomGestures();
@@ -72,6 +87,26 @@ export class PageView extends EventTarget {
   get pinching() { return !!this.#pinch; }
 
   get percent() { return Math.round((this.s / PX_100) * 100); }
+
+  /** The view is scrolled to the very bottom (or everything fits). */
+  get atEnd() {
+    const sc = this.scroller;
+    return sc.scrollTop >= sc.scrollHeight - sc.clientHeight - 2;
+  }
+
+  #setPull(px) {
+    px = Math.max(0, px);
+    if (px === this.#pull) return;
+    this.#pull = px;
+    this.dispatchEvent(new CustomEvent('pull', { detail: { progress: Math.min(1, px / PULL_PX), ready: px >= PULL_PX } }));
+  }
+
+  /** Ends a pull: a full gauge asks for a new page, any other just empties. */
+  #releasePull(commit = true) {
+    const ready = this.#pull >= PULL_PX;
+    this.#setPull(0);
+    if (ready && commit) this.dispatchEvent(new Event('pullpage'));
+  }
 
   setPages(pages) {
     this.pages = pages;
@@ -482,10 +517,26 @@ export class PageView extends EventTarget {
   #bindZoomGestures() {
     const sc = this.scroller;
     const signal = this.#ac.signal;
+    let wheelIdle = 0, pullCooldownUntil = 0;
     sc.addEventListener('wheel', (e) => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      this.setScale(this.s * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
+      if (e.ctrlKey) {
+        e.preventDefault();
+        this.setScale(this.s * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
+        return;
+      }
+      // Scrolling on at the bottom: fill the "new page" gauge.
+      const now = performance.now();
+      if (e.deltaY > 0 && !e.shiftKey && this.atEnd) {
+        if (now < pullCooldownUntil || now - this.#lastScroll.t < PULL_WHEEL_SETTLE_MS) return;
+        const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? sc.clientHeight : 1);
+        this.#setPull(this.#pull + dy * PULL_WHEEL_FACTOR);
+        clearTimeout(wheelIdle);
+        if (this.#pull >= PULL_PX) { pullCooldownUntil = now + PULL_COOLDOWN_MS; this.#releasePull(); }
+        else wheelIdle = setTimeout(() => this.#releasePull(false), PULL_WHEEL_IDLE_MS);
+      } else if (this.#pull && e.deltaY < 0) {
+        clearTimeout(wheelIdle);
+        this.#releasePull(false);
+      }
     }, { passive: false, signal });
 
     const pts = new Map();          // pointerId -> { x, y }
@@ -500,6 +551,7 @@ export class PageView extends EventTarget {
       this.#pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y), s0: this.s, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, active: false };
       this.#pinch.log = { start: this.#mmAt((a.x + b.x) / 2, (a.y + b.y) / 2), zoom0: this.percent, mid0: [Math.round(this.#pinch.mx), Math.round(this.#pinch.my)] };
       pan = null;
+      this.#releasePull(false);
       this.dispatchEvent(new Event('pinchstart'));
     };
 
@@ -536,8 +588,13 @@ export class PageView extends EventTarget {
           if (Math.abs(target - this.s) / this.s > 0.004) this.setScale(target, mx, my);
         }
       } else if (pan) {
+        // Dragging up at the bottom pulls the "new page" gauge instead of scrolling;
+        // dragging back down empties it first, then scrolls again.
+        let dy = pan.y - p.y;
+        if (dy > 0 && (this.#pull > 0 || this.atEnd)) { this.#setPull(this.#pull + dy); dy = 0; }
+        else if (dy < 0 && this.#pull > 0) { const back = Math.min(this.#pull, -dy); this.#setPull(this.#pull - back); dy += back; }
         sc.scrollLeft -= p.x - pan.x;
-        sc.scrollTop -= p.y - pan.y;
+        sc.scrollTop += dy;
         pan.x = p.x; pan.y = p.y;
         pan.samples.push({ t: performance.now(), x: p.x, y: p.y });
         if (pan.samples.length > 6) pan.samples.shift();
@@ -563,6 +620,7 @@ export class PageView extends EventTarget {
       if (pan && pts.size === 0) {
         const s = pan.samples;
         pan = null;
+        if (this.#pull > 0) { this.#releasePull(e.type !== 'pointercancel'); return; }   // no fling after a pull
         if (e.type === 'pointercancel' || s.length < 2) return;
         const first = s[0], last = s[s.length - 1];
         const dt = Math.max(1, last.t - first.t);
