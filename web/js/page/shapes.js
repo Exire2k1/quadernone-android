@@ -72,6 +72,45 @@ export function shapeSvg(obj) {
   return `<path d="${shapePathD(obj)}" fill="${fill}" stroke="${obj.stroke.color}" stroke-width="${obj.stroke.width}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
+let hitCtx = null;
+
+/** True if a disc of radius r (mm) at (x, y) touches the shape's outline (or its fill, if filled). */
+export function shapeHit(obj, x, y, r) {
+  const pad = r + obj.stroke.width;
+  if (x < obj.x - pad || x > obj.x + obj.w + pad || y < obj.y - pad || y > obj.y + obj.h + pad) return false;
+  hitCtx ||= document.createElement('canvas').getContext('2d');
+  const path = new Path2D(shapePathD(obj));
+  hitCtx.lineWidth = obj.stroke.width + 2 * r;
+  hitCtx.lineCap = 'round';
+  hitCtx.lineJoin = 'round';
+  if (hitCtx.isPointInStroke(path, x, y)) return true;
+  return !isOpen(obj.kind) && !!obj.fill && hitCtx.isPointInPath(path, x, y);
+}
+
+/** The outline of a shape as polylines (page mm), so the partial eraser can cut it like ink. */
+export function shapeOutline(obj) {
+  const p = obj.points;
+  switch (obj.kind) {
+    case 'line': return [[p[0], p[1]]];
+    case 'arrow': {
+      const [a, b] = p, len = Math.max(3, obj.stroke.width * 4), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      const h1 = [b[0] - len * Math.cos(ang - 0.45), b[1] - len * Math.sin(ang - 0.45)];
+      const h2 = [b[0] - len * Math.cos(ang + 0.45), b[1] - len * Math.sin(ang + 0.45)];
+      return [[a, b], [h1, b, h2]];
+    }
+    case 'ellipse': {
+      const { cx, cy, rx, ry, rot } = ellipseParams(p);
+      const n = 96, line = [];
+      for (let i = 0; i <= n; i++) {
+        const t = 2 * Math.PI * i / n, ex = rx * Math.cos(t), ey = ry * Math.sin(t);
+        line.push([r2(cx + ex * Math.cos(rot) - ey * Math.sin(rot)), r2(cy + ex * Math.sin(rot) + ey * Math.cos(rot))]);
+      }
+      return [line];
+    }
+    default: return [[...p, p[0]]];   // rect, triangle
+  }
+}
+
 /** Draws into a canvas whose unit is 1 mm. */
 export function drawShape(ctx, obj) {
   const path = new Path2D(shapePathD(obj));

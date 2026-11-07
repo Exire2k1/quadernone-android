@@ -10,7 +10,7 @@
 import { tools } from './tools.js';
 import { PressureTrack } from './pressure.js';
 import { liveSvg, eraseArea, strokeHit, newStrokeId, isHighlighter, drawStrokes, quickBBox } from '../page/ink.js';
-import { recognize, makeShape, shapeFromDrag, shapeSvg } from '../page/shapes.js';
+import { recognize, makeShape, shapeFromDrag, shapeSvg, shapeHit, shapeOutline } from '../page/shapes.js';
 import * as diag from '../diag.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -182,7 +182,7 @@ export class InkInput extends EventTarget {
       st.stroke = { id: newStrokeId(), ...tools.strokeStyle('shape'), points: st.points };
     } else if (action === 'erase' || action === 'eraser') {
       st.action = 'erase';
-      this.erasing = { pageId: hit.page.id, strokes: this.doc.strokes(hit.page.id) };
+      this.erasing = { pageId: hit.page.id, strokes: this.doc.strokes(hit.page.id), objects: hit.page.objects || [] };
     } else if (action === 'lasso') {
       this.selection.clear();
     }
@@ -260,7 +260,12 @@ export class InkInput extends EventTarget {
     clearTimeout(st.timer);
     clearTimeout(st.holdTimer);
     this.#stroke = null;
-    if (this.erasing) { this.erasing = null; this.view.invalidateInk(st.pageId); }
+    if (this.erasing) {
+      const changed = this.erasing.objChanged;
+      this.erasing = null;
+      this.view.invalidateInk(st.pageId);
+      if (changed) this.view.remountPage(st.pageId);   // shapes hidden by the preview come back
+    }
     this.clearOverlay();
   }
 
@@ -443,6 +448,7 @@ export class InkInput extends EventTarget {
       spots.push(p);
       st.lastErase = p;
     }
+    const fresh = this.#eraseShapes(st, spots, r, area);
     let strokes = this.erasing.strokes;
     const before = new Set(strokes);
     for (const [x, y] of spots) {
@@ -450,7 +456,7 @@ export class InkInput extends EventTarget {
     }
     // What changed: strokes removed or cut (their old boxes) and the new pieces.
     const after = new Set(strokes);
-    const touched = [...before].filter((s) => !after.has(s)).concat(strokes.filter((s) => !before.has(s)));
+    const touched = [...before].filter((s) => !after.has(s)).concat(strokes.filter((s) => !before.has(s)), fresh);
     if (!touched.length) return;
     this.erasing.strokes = strokes;
     const d = this.erasing.dirty ||= { y0: Infinity, y1: -Infinity, under: false, over: false };
@@ -470,12 +476,49 @@ export class InkInput extends EventTarget {
     });
   }
 
+  /**
+   * Shapes (page objects) under the eraser. Whole-stroke mode, and filled shapes, remove the
+   * shape; the partial eraser turns an outline-only shape into ink first, so it is cut like a
+   * pen stroke. Returns the strokes created (to be redrawn).
+   */
+  #eraseShapes(st, spots, r, area) {
+    const er = this.erasing;
+    if (!er.objects.some((o) => o.type === 'shape')) return [];
+    const fresh = [];
+    for (const [x, y] of spots) {
+      for (const o of er.objects) {
+        if (o.type !== 'shape' || o.locked || !shapeHit(o, x, y, r)) continue;
+        er.objects = er.objects.filter((q) => q !== o);
+        er.objChanged = true;
+        this.view.objectLayer(st.pageId)?.querySelector(`[data-obj-id="${o.id}"]`)?.style.setProperty('display', 'none');
+        if (!area || o.fill) continue;
+        for (const pts of shapeOutline(o)) {
+          const s = { id: newStrokeId(), tool: 'ballpoint', color: o.stroke.color, width: o.stroke.width, opacity: 1, pressure: false, points: pts };
+          er.strokes = [...er.strokes, s];
+          fresh.push(s);
+        }
+      }
+    }
+    return fresh;
+  }
+
   #commitErase(st) {
     cancelAnimationFrame(this.eraseRaf);
     this.eraseRaf = 0;
     const er = this.erasing;
     this.erasing = null;
     if (!er) return;
+    if (er.objChanged) {
+      // Ink and shapes change together: one undo step.
+      const page = st.page;
+      this.doc.transact(() => {
+        if (er.strokes !== this.doc.strokes(st.pageId)) this.doc.setInk(st.pageId, er.strokes);
+        page.objects = er.objects;
+      });
+      this.view.remountPage(st.pageId);
+      this.view.invalidateInk(st.pageId);
+      return;
+    }
     if (er.strokes !== this.doc.strokes(st.pageId)) this.doc.setInk(st.pageId, er.strokes);
     // The tiles already show these strokes; only a change not yet drawn needs a redraw.
     if (er.dirty) this.view.invalidateInk(st.pageId, er.dirty);
